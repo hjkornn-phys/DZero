@@ -26,6 +26,7 @@ if __name__ == "__main__":
             num_grad = numerical_diff(square, x)
             flg = np.allclose(x.grad, num_grad)
             self.assertTrue(flg)
+
     unittest.main()
 
 
