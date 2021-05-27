@@ -1,4 +1,4 @@
-# from .step01 import Variable
+from step01 import Variable
 
 def numerical_diff(f, x, eps=1e-4):
     """

@@ -1,5 +1,5 @@
-# from .step01 import Variable
-# from .step02 import Function, Square
+from step01 import Variable
+from step02 import Function, Square
 import numpy as np
 
 
