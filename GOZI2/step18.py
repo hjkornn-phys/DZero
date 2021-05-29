@@ -1,4 +1,24 @@
 import numpy as np
+import weakref
+import contextlib
+
+
+class Config:  # New
+    enable_backprop = True
+
+
+@contextlib.contextmanager
+def using_config(name, value):
+    old_value = getattr(Config, name)
+    setattr(Config, name, value)
+    try:
+        yield
+    finally:
+        setattr(Config, name, old_value)
+
+
+def no_grad():
+    return using_config("enable_backprop", False)
 
 
 class Variable:
@@ -18,13 +38,13 @@ class Variable:
 
     def set_creator(self, func):
         self.creator = func
-        self.generation = func.generation + 1  # New
+        self.generation = func.generation + 1
 
-    def backward(self):
+    def backward(self, retain_grad):
         if self.grad is None:
             self.grad = np.ones_like(self.data)
 
-        funcs = []  # New
+        funcs = []
         seen = set()
 
         def add_func(f):
@@ -37,7 +57,7 @@ class Variable:
 
         while funcs:
             f = funcs.pop()
-            grads_out = [output.grad for output in f.outputs]
+            grads_out = [output().grad for output in f.outputs]
             grads_in = f.backward(*grads_out)
             if not isinstance(grads_in, tuple):
                 grads_in = (grads_in,)
@@ -49,7 +69,11 @@ class Variable:
                     x.grad = x.grad + grad_in
 
                 if x.creator is not None:
-                    add_func(x.creator)  # New
+                    add_func(x.creator)
+
+            if not retain_grad:  # New
+                for y in f.outputs:  # Only outputs
+                    y().grad = None
 
     def cleargrad(self):
         self.grad = None
@@ -63,12 +87,13 @@ class Function:
             ys = (ys,)
         outputs = [Variable(as_array(y)) for y in ys]
 
-        self.generation = max([x.generation for x in inputs])  # New
-        for output in outputs:
-            output.set_creator(self)
-        self.inputs = inputs
-        self.outputs = outputs  # must be tuple to have len()
-        return outputs if len(outputs) > 1 else outputs[0]
+        if Config.enable_backprop:
+            self.generation = max([x.generation for x in inputs])
+            for output in outputs:
+                output.set_creator(self)
+            self.inputs = inputs
+            self.outputs = [weakref.ref(output) for output in outputs]
+            return outputs if len(outputs) > 1 else outputs[0]
 
     def forward(self, x):
         raise NotImplementedError
@@ -145,11 +170,6 @@ def as_array(x):
 
 
 if __name__ == "__main__":
-    x = Variable(np.array(2.0))
-    a = square(x)
-    y = add(square(a), square(a))
-    y.backward()
-
-    print(y.data)
-    print(y.grad)
-    print(x.grad)
+    for i in range(10):
+        x = np.random.randn(10000)
+        y = square(square(square(x)))
