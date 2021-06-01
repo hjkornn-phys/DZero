@@ -167,11 +167,19 @@ class Add(Function):
     """
 
     def forward(self, x0, x1):
+        self.x0_shape, self.x1_shape = (
+            x0.shape,
+            x1.shape,
+        )  # shape saved for broadcasting(backprop)
         y = x0 + x1
         return y
 
     def backward(self, grad):
-        return grad, grad
+        grad_x0, grad_x1 = grad, grad
+        if self.x0_shape != self.x1_shape:  # broadcasting occured
+            grad_x0 = dezero.functions.sum_to(grad_x0, self.x0_shape)
+            grad_x1 = dezero.functions.sum_to(grad_x1, self.x1_shape)
+        return grad_x0, grad_x1
 
 
 def add(x0, x1):
@@ -188,6 +196,10 @@ def add(x0, x1):
 
 class Mul(Function):
     def forward(self, x0, x1):
+        self.x0_shape, self.x1_shape = (
+            x0.shape,
+            x1.shape,
+        )  # shape saved for broadcasting(backprop)
         y = x0 * x1
         return y
 
@@ -195,6 +207,9 @@ class Mul(Function):
         x0, x1 = self.inputs
         grad_x0 = grad * x1  # '*' is overriden by Mul -> computational graph is created
         grad_x1 = grad * x0  # when Function.__call__()
+        if self.x0_shape != self.x1_shape:  # broadcasting occured
+            grad_x0 = dezero.functions.sum_to(grad_x0, self.x0_shape)
+            grad_x1 = dezero.functions.sum_to(grad_x1, self.x1_shape)
         return grad_x0, grad_x1
 
 
@@ -227,10 +242,18 @@ def neg(x):
 
 class Sub(Function):
     def forward(self, x0, x1):
+        self.x0_shape, self.x1_shape = (
+            x0.shape,
+            x1.shape,
+        )  # shape saved for broadcasting(backprop)
         return x0 - x1
 
     def backward(self, grad):
-        return grad, -grad
+        grad_x0, grad_x1 = grad, grad
+        if self.x0_shape != self.x1_shape:  # broadcasting occured
+            grad_x0 = dezero.functions.sum_to(grad_x0, self.x0_shape)
+            grad_x1 = dezero.functions.sum_to(grad_x1, self.x1_shape)
+        return grad_x0, -grad_x1
 
 
 def sub(x0, x1):
@@ -245,6 +268,10 @@ def rsub(x0, x1):
 
 class Div(Function):
     def forward(self, x0, x1):
+        self.x0_shape, self.x1_shape = (
+            x0.shape,
+            x1.shape,
+        )  # shape saved for broadcasting(backprop)
         y = x0 / x1
         return y
 
@@ -252,6 +279,9 @@ class Div(Function):
         x0, x1 = self.inputs
         grad_x0 = grad / x1
         grad_x1 = grad * (-x0 / x1 ** 2)
+        if self.x0_shape != self.x1_shape:  # broadcasting occured
+            grad_x0 = dezero.functions.sum_to(grad_x0, self.x0_shape)
+            grad_x1 = dezero.functions.sum_to(grad_x1, self.x1_shape)
         return grad_x0, grad_x1
 
 

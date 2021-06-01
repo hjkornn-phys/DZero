@@ -1,5 +1,4 @@
 import numpy as np
-from numpy.lib.stride_tricks import broadcast_to
 from dezero.core import Function, as_variable
 from dezero import utils
 
@@ -85,7 +84,7 @@ def transpose(x):
 
 
 class Sum(Function):
-    def __init__(self, axis, keepdims) -> None:
+    def __init__(self, axis=None, keepdims=False) -> None:
         self.axis = axis
         self.keepdims = keepdims
 
@@ -102,3 +101,43 @@ class Sum(Function):
 
 def sum(x, axis, keepdims):
     return Sum(axis, keepdims)(x)
+
+
+class BroadcastTo(Function):
+    def __init__(self, shape) -> None:
+        self.shape = shape
+
+    def forward(self, x):
+        self.x_shape = x.shape
+        y = np.broadcast_to(x, self.shape)
+        return y
+
+    def backward(self, grad):
+        grad = sum_to(grad, self.x_shape)
+        return grad
+
+
+def broadcast_to(x, shape):
+    if shape == x.shape:
+        return as_variable(x)
+    return BroadcastTo(shape)(x)
+
+
+class SumTo(Function):
+    def __init__(self, shape) -> None:
+        self.shape = shape
+
+    def forward(self, x):
+        self.x_shape = x.shape
+        y = utils.sum_to(x, self.shape)
+        return y
+
+    def backward(self, grad):
+        grad = broadcast_to(grad, self.x_shape)
+        return grad
+
+
+def sum_to(x, shape):
+    if shape == x.shape:
+        return as_variable(x)
+    return SumTo(shape)(x)
