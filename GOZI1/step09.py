@@ -3,10 +3,6 @@ import numpy as np
 
 class Variable:
     def __init__(self, data) -> None:
-        """
-        >>> x= Variable(0.5)
-        TypeError: <class 'numpy.float64'> is not supported as an input.
-        """
         if data is not None:
             if not isinstance(data, np.ndarray):
                 raise TypeError(f"{type(data)} is not supported as an input.")
@@ -60,8 +56,13 @@ class Square(Function):
 
 
 def square(x):  # New
-    f = Square()
-    return f(x)
+    """
+    >>> x = Variable(np.array(1.0))
+    >>> y = square(x)
+    >>> print(y.data)
+    1.0
+    """
+    return Square()(x)
 
 
 class Exp(Function):
@@ -76,8 +77,7 @@ class Exp(Function):
 
 
 def exp(x):  # New
-    f = Exp()
-    return f(x)
+    return Exp()(x)
 
 
 def as_array(x):  # New

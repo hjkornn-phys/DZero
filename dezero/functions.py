@@ -99,7 +99,7 @@ class Sum(Function):
         return grad
 
 
-def sum(x, axis, keepdims):
+def sum(x, axis=None, keepdims=True):
     return Sum(axis, keepdims)(x)
 
 
@@ -141,3 +141,81 @@ def sum_to(x, shape):
     if shape == x.shape:
         return as_variable(x)
     return SumTo(shape)(x)
+
+
+class MatMul(Function):
+    def forward(self, x, W):
+        y = x.dot(W)
+        return y
+
+    def backward(self, grad):
+        x, W = self.inputs
+        grad_x = matmul(grad, W.T)
+        grad_W = matmul(x.T, grad)
+        return grad_x, grad_W
+
+
+def matmul(x, W):
+    return MatMul()(x, W)
+
+
+class MeanSquaredError(Function):
+    def forward(self, x0, x1):
+        diff = x0 - x1
+        y = (diff ** 2).sum() / len(diff)
+        return y
+
+    def backward(self, grad):
+        x0, x1 = self.inputs
+        diff = x0 - x1
+        grad_x0 = grad * diff * (2.0 / len(diff))
+        grad_x1 = -grad_x0
+        return grad_x0, grad_x1
+
+
+def mean_squared_error(x0, x1):
+    return MeanSquaredError()(x0, x1)
+
+
+def linear_simple(x, W, b=None):
+    t = matmul(x, W)
+    if b is None:
+        return t
+
+    y = t + b
+    t.data = None
+    return y
+
+
+class Linear(Function):  # Need work
+    def forward(self, x, W, b):
+        y = x.dot(W)
+        if b is not None:
+            y += b
+        return y
+
+    def backward(self, grad):
+        x, W, b = self.inputs
+        grad_b = None if b.data is None else sum_to(grad, b.shape)
+        grad_x = matmul(grad, W.T)
+        grad_W = matmul(x.T, grad)
+        return grad_x, grad_W, grad_b
+
+
+def linear(x, W, b):
+    return Linear()(x, W, b)
+
+
+class Sigmoid(Function):
+    def forward(self, x):
+        y = 1 / (1 + np.exp(-x))
+        return y
+
+    def backward(self, grad):
+        y = self.outputs[0]()
+        grad = grad * y * (1 - y)
+        return grad
+
+
+def sigmoid(x):
+    return Sigmoid()(x)

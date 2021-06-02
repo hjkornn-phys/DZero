@@ -65,7 +65,7 @@ if __name__ == "__main__":
     B = Exp()
     C = Square()
 
-    x = Variable(np.array(0.5))
+    x = Variable(np.array(2.0))
     a = A(x)
     b = B(a)
     y = C(b)
@@ -80,4 +80,8 @@ if __name__ == "__main__":
     # backprop
     y.grad = np.array(1.0)
     y.backward()
+
+    print(y.data)
+    print(np.exp(8))
     print(x.grad)
+    print(8 * np.exp(8))
