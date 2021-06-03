@@ -324,3 +324,7 @@ def setup_variable():
     Variable.__truediv__ = div
     Variable.__rtruediv__ = rdiv
     Variable.__pow__ = pow
+
+
+class Parameter(Variable):
+    pass

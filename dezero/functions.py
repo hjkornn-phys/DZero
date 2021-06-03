@@ -187,7 +187,7 @@ def linear_simple(x, W, b=None):
     return y
 
 
-class Linear(Function):  # Need work
+class Linear(Function):  # Why can't I delete t.data like simple ver.
     def forward(self, x, W, b):
         y = x.dot(W)
         if b is not None:
