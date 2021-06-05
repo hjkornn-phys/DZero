@@ -1,5 +1,5 @@
 import numpy as np
-from dezero.core import Function, as_variable
+from dezero.core import Function, Variable, as_array, as_variable
 from dezero import utils
 
 
@@ -293,3 +293,12 @@ class CrossEntropyLoss(Function):
 
 def cross_entropy(y_pred, y_true):  # apply one-hot beforehand
     return CrossEntropyLoss()(y_pred, y_true)
+
+
+def accuracy(pred, label):
+    pred, label = as_variable(pred), as_variable(label)
+
+    pred = pred.data.argmax(axis=1).reshape(label.shape)
+    result = pred == label.data
+    acc = result.mean()
+    return Variable(as_array(acc))
