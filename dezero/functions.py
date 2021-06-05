@@ -219,3 +219,77 @@ class Sigmoid(Function):
 
 def sigmoid(x):
     return Sigmoid()(x)
+
+
+class GetItem(Function):
+    def __init__(self, slices):
+        self.slices = slices
+
+    def forward(self, x):
+        y = x[self.slices]
+        return y
+
+    def backward(self, gy):
+        (x,) = self.inputs
+        f = GetItemGrad(self.slices, x.shape)
+        return f(gy)
+
+
+class GetItemGrad(Function):
+    def __init__(self, slices, in_shape):
+        self.slices = slices
+        self.in_shape = in_shape
+
+    def forward(self, gy):
+        gx = np.zeros(self.in_shape, dtype=gy.dtype)
+        np.add.at(gx, self.slices, gy)  # gx + gy at index
+        return gx
+
+    def backward(self, ggx):
+        return get_item(ggx, self.slices)
+
+
+def get_item(x, slices):
+    f = GetItem(slices)
+    return f(x)
+
+
+# ================================== done by myself
+class Softmax(Function):
+    def __init__(self, axis=1) -> None:
+        self.axis = axis
+
+    def forward(self, x):
+        x = x - np.max(x, self.axis, keepdims=True)
+        y = np.exp(x)
+        partition = np.sum(y, self.axis, keepdims=True)
+        y /= partition
+        return y
+
+    def backward(self, grad):
+        y = self.outputs[0]()
+        grad = y * grad
+        dipart = grad.sum(axis=self.axis, keepdims=True)
+        grad -= y * dipart
+        return grad
+
+
+def softmax(x, axis=1):
+    return Softmax(axis)(x)
+
+
+class CrossEntropyLoss(Function):
+    def forward(self, y_pred, y_true):
+        N = y_pred.shape[0]
+        y_pred = np.where(y_pred < 1e-15, 1e-15, y_pred)
+        cce = -np.sum(y_true * np.log(y_pred)) / np.float(N)
+        return cce
+
+    def backward(self, grad):
+        y_pred, y_true = self.inputs
+        grad *= as_variable(np.where(y_true.data == 1, -1.0 / y_pred.data, 0))
+        return grad, np.zeros_like(y_true)
+
+
+def cross_entropy(y_pred, y_true):  # apply one-hot beforehand
+    return CrossEntropyLoss()(y_pred, y_true)
