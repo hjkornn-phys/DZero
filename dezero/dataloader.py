@@ -6,15 +6,17 @@ try:
 except:
     pil_available = False
 import numpy as np
+from dezero import cuda
 
 
 class DataLoader:
-    def __init__(self, dataset, batch_size, shuffle=True):
+    def __init__(self, dataset, batch_size, shuffle=True, gpu=False):
         self.dataset = dataset
         self.batch_size = batch_size
         self.shuffle = shuffle
         self.data_size = len(dataset)
         self.max_iter = math.ceil(self.data_size / batch_size)
+        self.gpu = gpu
 
         self.reset()
 
@@ -29,7 +31,7 @@ class DataLoader:
         return self
 
     def __next__(self):
-        if self.iteration >= self.max_iter:
+        if self.iteration >= self.max_iter:  # end of epoch
             self.reset()
             raise StopIteration
 
@@ -37,11 +39,18 @@ class DataLoader:
         batch_index = self.index[i * batch_size : (i + 1) * batch_size]
         batch = [self.dataset[i] for i in batch_index]
 
-        x = np.array([example[0] for example in batch])
-        t = np.array([example[1] for example in batch])
+        xp = cuda.cupy if self.gpu else np
+        x = xp.array([example[0] for example in batch])
+        t = xp.array([example[1] for example in batch])
 
         self.iteration += 1
         return x, t
 
     def next(self):
         return self.__next__()
+
+    def to_gpu(self):
+        self.gpu = True
+
+    def to_cpu(self):
+        self.gpu = False

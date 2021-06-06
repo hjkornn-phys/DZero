@@ -12,7 +12,7 @@ import dezero.dataloader
 import dezero.optimizers
 from dezero import no_grad
 
-MAX_EPOCH = 5000
+MAX_EPOCH = 500
 BATCH_SIZE = 30
 HIDDEN_SIZE = 10
 lr = 1.0
@@ -30,7 +30,7 @@ optimizer = dezero.optimizers.MomentumSGD().setup(model)
 for epoch in range(MAX_EPOCH):
     sum_loss, sum_acc = 0, 0
 
-    for x, t in train_loader:  # Using Iterator
+    for x, t in train_loader:  # Using Iterator, Next is called
         y = F.softmax(model(x))
         t_onehot = np.eye(3)[t]
         t_onehot = Variable(t_onehot)
