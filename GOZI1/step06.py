@@ -54,7 +54,7 @@ if __name__ == "__main__":
     b = B(a)
     y = C(b)
 
-    y.grad = np.array(1.0)
+    y.grad = np.array(0.5)
     b.grad = C.backward(y.grad)
     a.grad = B.backward(b.grad)
     x.grad = A.backward(a.grad)

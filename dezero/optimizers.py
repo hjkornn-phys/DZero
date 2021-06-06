@@ -1,4 +1,5 @@
 import numpy as np
+from dezero import cuda
 
 
 class Optimizer:
@@ -47,7 +48,8 @@ class MomentumSGD(Optimizer):
     def update_one(self, param):
         v_key = id(param)
         if v_key not in self.vs:
-            self.vs[v_key] = np.zeros_like(param.data)
+            xp = cuda.get_array_module(param.data)
+            self.vs[v_key] = xp.zeros_like(param.data)
 
         v = self.vs[v_key]
         v *= self.momentum
