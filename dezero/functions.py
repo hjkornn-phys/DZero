@@ -293,19 +293,19 @@ def softmax(x, axis=1):
 
 
 class CrossEntropyLoss(Function):
-    def forward(self, y_pred, y_true):
-        N = y_pred.shape[0]
+    def forward(self, y_pred, y_true_onehot):
+        N, D = y_pred.shape
         xp = cuda.get_array_module(y_pred)
         y_pred = xp.where(y_pred < 1e-15, 1e-15, y_pred)
-        cce = -xp.sum(y_true * xp.log(y_pred)) / xp.float(N)
+        cce = -xp.sum(y_true_onehot * xp.log(y_pred)) / xp.float(N)
         return cce
 
     def backward(self, grad):
-        y_pred, y_true = self.inputs
+        y_pred, y_true_onehot = self.inputs
         N, D = y_pred.shape
-        xp = cuda.get_array_module(y_pred)
-        y_true_onehot = xp.eye(D, dtype=y_true.dtype)[y_true.data]
-        grad *= (y_pred - y_true_onehot) / N
+        xp = cuda.get_array_module(y_pred.data)
+        diff = y_pred - y_true_onehot
+        grad = grad * diff / xp.float(N)
         return grad
 
 
@@ -320,3 +320,29 @@ def accuracy(pred, label):
     result = pred == label.data
     acc = result.mean()
     return Variable(as_array(acc))
+
+
+class SoftmaxCrossEntropy(Function):
+    def forward(self, x, t):
+        N = x.shape[0]
+        log_z = utils.logsumexp(x, axis=1)
+        log_p = x - log_z
+        log_p = log_p[np.arange(N), t.ravel()]
+        y = -log_p.sum() / np.float32(N)
+        return y
+
+    def backward(self, gy):
+        x, t = self.inputs
+        N, CLS_NUM = x.shape
+
+        gy *= 1 / N
+        y = softmax(x)
+        # convert to one-hot
+        xp = cuda.get_array_module(t.data)
+        t_onehot = xp.eye(CLS_NUM, dtype=t.dtype)[t.data]
+        y = (y - t_onehot) * gy
+        return y
+
+
+def softmax_cross_entropy(x, t):
+    return SoftmaxCrossEntropy()(x, t)
