@@ -296,17 +296,17 @@ class CrossEntropyLoss(Function):
     def forward(self, y_pred, y_true):
         N = y_pred.shape[0]
         xp = cuda.get_array_module(y_pred)
-        assert xp == cuda.get_array_module(y_true)
         y_pred = xp.where(y_pred < 1e-15, 1e-15, y_pred)
         cce = -xp.sum(y_true * xp.log(y_pred)) / xp.float(N)
         return cce
 
     def backward(self, grad):
         y_pred, y_true = self.inputs
+        N, D = y_pred.shape
         xp = cuda.get_array_module(y_pred)
-        assert xp == cuda.get_array_module(y_true)
-        grad *= as_variable(xp.where(y_true.data == 1, -1.0 / y_pred.data, 0))
-        return grad, xp.zeros_like(y_true)
+        y_true_onehot = xp.eye(D, dtype=y_true.dtype)[y_true.data]
+        grad *= (y_pred - y_true_onehot) / N
+        return grad
 
 
 def cross_entropy(y_pred, y_true):  # apply one-hot beforehand
