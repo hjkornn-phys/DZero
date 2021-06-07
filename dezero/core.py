@@ -3,6 +3,13 @@ import weakref
 import contextlib
 import dezero
 
+try:
+    import cupy
+
+    array_types = (np.ndarray, cupy.ndarray)
+except ImportError:
+    array_types = np.ndarray
+
 
 class Config:
     enable_backprop = True
@@ -36,12 +43,6 @@ def as_variable(obj):
 
 class Variable:
     def __init__(self, data, name=None) -> None:
-        try:
-            import cupy
-
-            array_types = (np.ndarray, cupy.ndarray)
-        except ImportError:
-            array_types = np.ndarray
         if data is not None:
             if not isinstance(data, array_types):
                 data = as_array(data)
@@ -142,7 +143,7 @@ class Variable:
 
     def to_gpu(self):
         if self.data is not None:
-            self.data - dezero.cuda.as_cupy(self.data)
+            self.data = dezero.cuda.as_cupy(self.data)
 
 
 class Function:

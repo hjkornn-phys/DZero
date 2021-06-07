@@ -163,3 +163,13 @@ def get_file(url, file_name=None):
     print(" Done")
 
     return file_path
+
+
+def pair(x):
+    if isinstance(x, int):
+        return (x, x)
+    elif isinstance(x, tuple):
+        assert len(x) == 2
+        return x
+    else:
+        raise ValueError
